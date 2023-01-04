@@ -1,0 +1,208 @@
+foreach ($region_id_array as $key => $region_id)
+                            {
+                                $order_amount_sub                  = 0;
+                                $purchase_amount_sub               = 0;
+                                $pending_amount_sub                = 0;
+                                $due_amount_sub                    = 0;
+                                $payment_amount_sub                = 0;
+                                $return_amount_sub                 = 0;
+                                $collection_adjustment_sub         = 0;
+                                $grand_total_sub                   = 0;
+                                $grand_total_order_amount          = 0;
+                                $grand_total_total_amount          = 0;
+                                $grand_total_pending_amount        = 0;
+                                $grand_total_collect_amount        = 0;
+                                $grand_total_return_amount         = 0;
+                                $grand_total_due_amount            = 0;
+                                $grand_total_collection_adjustment = 0;
+                                $slrsm                             = 0;
+                                $sl                                = 0;
+                                // dd($region_wise);
+                                if ($region_wise)
+                                {
+                                    $excel_data_attribute = array(
+                                        array_merge(
+                                            array(helper::RegionDataInfoOnlyRegion($region_id)->code),array(helper::RegionDataInfoOnlyRegion($region_id)->name),array("-"),array(helper::RegionDataInfo($region_id)->rsmName)));
+                                    
+                                }
+
+                                foreach ($customers as $key => $customer)
+                                {
+                                    $order_amount          = 0;
+                                    $purchase_amount       = 0;
+                                    $pending_amount        = 0;
+                                    $collection_adjustment = 0;
+                                    $due_amount            = 0;
+                                    $payment_amount        = 0;
+                                    $return_amount         = 0;
+                                    $balance               = 0;
+                                    foreach ($customer->purchaseLedgers as $index => $purchaseLedger)
+                                    {
+                                        $due_amount = ($due_amount + $purchaseLedger->total_amount)-($purchaseLedger->collect_amount+$purchaseLedger->return_amount);
+                                        $order_amount          += $purchaseLedger->order_total_amount;
+                                        $purchase_amount       += $purchaseLedger->total_amount;
+                                        $collection_adjustment += $purchaseLedger->adjust_amount_sales;
+                                        $pending_amount        += $purchaseLedger->order_total_amount - $purchaseLedger->total_amount;
+                                        $payment_amount        += $purchaseLedger->collect_amount;
+                                        $return_amount         += $purchaseLedger->return_amount;
+                                    }
+                                    $grand_total_order_amount        += $order_amount;
+                                    $grand_total_total_amount        += $purchase_amount;
+                                    $grand_total_pending_amount      += $pending_amount;
+                                    $grand_total_collect_amount      += $payment_amount;
+                                    $grand_total_return_amount       += $return_amount;
+                                    $grand_total_collection_adjustment += $collection_adjustment;
+                                    if ($customer->openingDatasSuplier->account_status_id !=1) 
+                                    {
+                                        if ($date_range == 1) {
+                                            $grand_total_due_amount       += ($customer->openningBalanceCustomerData) + ($purchase_amount-$payment_amount-$return_amount);
+                                        } else {
+                                            $grand_total_due_amount       += -($customer->openingDatasSuplier->credit_amount) + ($purchase_amount-$payment_amount-$return_amount);
+                                        }
+                                        
+                                    } else 
+                                    {
+                                        if ($date_range == 1) {
+                                            $grand_total_due_amount       += ($customer->openningBalanceCustomerData) + ($purchase_amount-$payment_amount-$return_amount);
+                                        } else {
+                                            $grand_total_due_amount       += $customer->openingDatasSuplier->credit_amount + ($purchase_amount-$payment_amount-$return_amount);
+                                        }
+                                    }
+                                    $dataCheckBalance = $customer->openningBalanceCustomerData + ($purchase_amount-$payment_amount-$return_amount);
+                                    if ($customer->region_id == $region_id)
+                                    {
+                                        $order_amount_sub          += $order_amount;
+                                        $purchase_amount_sub       += $purchase_amount;
+                                        $pending_amount_sub        += $pending_amount;
+                                        $payment_amount_sub        += $payment_amount;
+                                        $return_amount_sub         += $return_amount;
+                                        $collection_adjustment_sub += $collection_adjustment;
+                                        if ($customer->openingDatasSuplier->account_status_id !=1) 
+                                        {
+                                            if ($date_range == 1) {
+                                                $grand_total_sub       += ($customer->openningBalanceCustomerData) + ($purchase_amount-$payment_amount-$return_amount - $collection_adjustment);
+                                            } else {
+                                                $grand_total_sub       += -($customer->openingDatasSuplier->credit_amount) + ($purchase_amount-$payment_amount-$return_amount - $collection_adjustment);
+                                            }
+                                        
+                                        } else {
+                                            if ($date_range == 1) {
+                                                $grand_total_sub       += ($customer->openningBalanceCustomerData) + ($purchase_amount-$payment_amount-$return_amount - $collection_adjustment);
+                                            } else {
+                                                $grand_total_sub       += $customer->openingDatasSuplier->credit_amount + ($purchase_amount-$payment_amount-$return_amount - $collection_adjustment);
+                                            }
+                                        }
+                                        // dd($dataCheckBalance);
+                                        // dd($reportMonth);
+                                        if ($dataCheckBalance != 0.00)
+                                        {
+                                            if ($region_wise){
+                                                $excel_dynamic_data_values[$index][] = ++$slrsm ;
+                                            }else{
+                                            $excel_dynamic_data_values[$index][] =  ++$sl ;
+                                            }
+                                            $excel_dynamic_data_values[$index][] = Helper::getcustomer($customer->customer_id)->customer_id. "-" .Helper::getcustomer($customer->customer_id)->name."---Line-591";
+                                            $excel_dynamic_data_values[$index][] = $customer->area_name;
+                                            if ($reportMonth == 01){
+                                                $excel_dynamic_data_values[$index][] = $customer->openingDatasSuplier->credit_amount ? ($customer->openingDatasSuplier->account_status_id == 1? "Due" :"Advance"): "";
+                                            }
+
+                                            if ($date_range == 1){
+                                                $excel_dynamic_data_values[$index][] = number_format($customer->openningBalanceCustomerData,2);
+                                            }else{
+                                                $excel_dynamic_data_values[$index][] = number_format($customer->openingDatasSuplier->credit_amount, 2);
+                                            }
+                                            $excel_dynamic_data_values[$index][] =  number_format($order_amount, 2);
+                                            $excel_dynamic_data_values[$index][] =  number_format($purchase_amount, 2);
+                                            $excel_dynamic_data_values[$index][] =  number_format($payment_amount, 2);
+                                            $excel_dynamic_data_values[$index][] =  number_format($collection_adjustment, 2);
+                                            if ($salesCoulmnShowOrHide > 0)
+                                            {
+                                            $excel_dynamic_data_values[$index][] = number_format($return_amount, 2)."Line- 608";
+                                            }
+                                            $index++;
+                                            // dd($customer->openingDatasSuplier->account_status_id);
+                                            if ($customer->openingDatasSuplier->account_status_id !=1){
+                                                if ($date_range == 1)
+                                                {
+                                                    if((($customer->openningBalanceCustomerData) + ($purchase_amount-$payment_amount-$return_amount - $collection_adjustment)) > 0)
+                                                    {
+                                                        $excel_dynamic_data_values[$index][] = "Due";
+                                                    }else{
+                                                        $excel_dynamic_data_values[$index][] = "Advance";
+                                                    }
+                                                }else{
+                                                    if((-($customer->openingDatasSuplier->credit_amount) + ($purchase_amount-$payment_amount-$return_amount - $collection_adjustment)) > 0)
+                                                    {
+                                                        $excel_dynamic_data_values[$index][] = "Due";
+                                                    }else{
+                                                        $excel_dynamic_data_values[$index][] = "Advance";
+                                                    }
+                                                }
+                                            }else{
+                                                if ($date_range == 1)
+                                                {
+                                                    if((($customer->openningBalanceCustomerData) + ($purchase_amount-$payment_amount-$return_amount - $collection_adjustment)) > 0)
+                                                    {
+                                                        $excel_dynamic_data_values[$index][] = "Due";
+                                                    }else{
+                                                        $excel_dynamic_data_values[$index][] = "Advance";
+                                                    }
+                                                }else{
+                                                    if((($customer->openingDatasSuplier->credit_amount) + ($purchase_amount-$payment_amount-$return_amount - $collection_adjustment)) > 0){
+                                                        $excel_dynamic_data_values[$index][] = "Due";
+                                                    }else{
+                                                        $excel_dynamic_data_values[$index][] = "Advance";
+                                                    }
+                                                }
+                                            }
+                                            if ($customer->openingDatasSuplier->account_status_id !=1){
+                                                if ($date_range == 1){
+                                                    $excel_dynamic_data_values[$index][] =  number_format(($customer->openningBalanceCustomerData) + ($purchase_amount-$payment_amount-$return_amount - $collection_adjustment) , 2);
+                                                }else{
+                                                    $excel_dynamic_data_values[$index][] =  number_format(-($customer->openingDatasSuplier->credit_amount) + ($purchase_amount-$payment_amount-$return_amount - $collection_adjustment) , 2);
+                                                }
+                                            }else{
+                                                if ($date_range == 1){
+                                                    $excel_dynamic_data_values[$index][] = number_format(($customer->openningBalanceCustomerData) + ($purchase_amount-$payment_amount-$return_amount - $collection_adjustment) , 2);
+                                                }else{
+                                                    $excel_dynamic_data_values[$index][] = number_format($customer->openingDatasSuplier->credit_amount + ($purchase_amount-$payment_amount-$return_amount - $collection_adjustment) , 2);
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                }
+                            }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+else
+                {
+                    if(count($customers) > 0)
+                    {
+                        if ($user_customer_type == 1)
+                        {
+                            if ($employee_for_name)
+                            {
+                                $excel_data_customer_id = array(
+                                    array_merge(
+                                        array("Employee Name: "),array(Helper::RsmData($employee_for_name)->name)));
+                            }
+                        }
+                        $salesCoulmnShowOrHide    = 0;
+                    }
+
+                }
